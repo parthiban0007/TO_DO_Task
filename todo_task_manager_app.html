@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taskboard - To-Do & Task Manager</title>
+  <meta name="description" content="A dynamic, locally-stored to-do and task manager application.">
+  <meta name="theme-color" content="#e8d5a3">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <h2 class="sr-only"
+    style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;">
+    To-do and task manager application with sidebar navigation, task list, and CRUD operations</h2>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Taskboard<span>v1.0 · local db</span></div>
+      <div class="nav-item active" onclick="setView('all')">
+        <span class="nav-icon">◈</span> All Tasks <span class="nav-badge hot" id="badge-all">0</span>
+      </div>
+      <div class="nav-item" onclick="setView('today')">
+        <span class="nav-icon">◎</span> Today <span class="nav-badge" id="badge-today">0</span>
+      </div>
+      <div class="nav-item" onclick="setView('active')">
+        <span class="nav-icon">▷</span> Active <span class="nav-badge" id="badge-active">0</span>
+      </div>
+      <div class="nav-item" onclick="setView('done')">
+        <span class="nav-icon">✓</span> Completed <span class="nav-badge" id="badge-done">0</span>
+      </div>
+      <div
+        style="margin:12px 0 8px;font-size:10px;font-family:var(--font-mono);color:var(--muted);padding:0 8px;text-transform:uppercase;letter-spacing:0.08em">
+        Categories</div>
+      <div class="nav-item" onclick="setView('cat-work')">
+        <span class="nav-icon">⬡</span> Work <span class="nav-badge" id="badge-work">0</span>
+      </div>
+      <div class="nav-item" onclick="setView('cat-personal')">
+        <span class="nav-icon">⬡</span> Personal <span class="nav-badge" id="badge-personal">0</span>
+      </div>
+      <div class="nav-item" onclick="setView('cat-study')">
+        <span class="nav-icon">⬡</span> Study <span class="nav-badge" id="badge-study">0</span>
+      </div>
+      <div
+        style="margin:12px 0 8px;font-size:10px;font-family:var(--font-mono);color:var(--muted);padding:0 8px;text-transform:uppercase;letter-spacing:0.08em">
+        Views</div>
+      <div class="nav-item" onclick="setView('kanban')">
+        <span class="nav-icon">▤</span> Kanban Board
+      </div>
+      <div class="nav-item" onclick="setView('gantt')">
+        <span class="nav-icon">◫</span> Gantt Chart
+      </div>
+      <div class="nav-item" onclick="setView('analytics')">
+        <span class="nav-icon">◠</span> Analytics
+      </div>
+      <div class="sidebar-footer">
+        <div class="stat-row"><span>Total tasks</span><span id="s-total">0</span></div>
+        <div class="stat-row"><span>Done</span><span id="s-done">0</span></div>
+        <div class="stat-row"><span>High priority</span><span id="s-high">0</span></div>
+        <div class="stat-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <span>Storage</span><span>IndexedDB</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="view-title">All Tasks</div>
+        <div class="search-wrap">
+          <span class="search-ico">⌕</span>
+          <input type="text" placeholder="search tasks..." id="search-input" oninput="renderList()">
+        </div>
+        <button class="btn btn-ghost" onclick="toggleForm()">+ New Task</button>
+      </div>
+
+      <div class="content">
+        <div class="add-form" id="add-form">
+          <div class="form-row">
+            <input type="text" id="new-title" placeholder="Task title..." maxlength="120">
+            <select id="new-priority">
+              <option value="med">Medium</option>
+              <option value="high">High</option>
+              <option value="low">Low</option>
+            </select>
+            <select id="new-cat">
+              <option value="work">Work</option>
+              <option value="personal">Personal</option>
+              <option value="study">Study</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <textarea class="form-textarea" id="new-note" rows="2" placeholder="Notes (optional)..."></textarea>
+          <div class="form-row" style="grid-template-columns:1fr 1fr auto">
+            <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px">Start Date</label><input type="date" id="new-start"></div>
+            <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px">Due Date</label><input type="date" id="new-due"></div>
+            <div class="form-actions" style="margin:0; align-items:end; padding-bottom:2px">
+              <button class="btn btn-ghost" onclick="toggleForm()">Cancel</button>
+              <button class="btn btn-primary" onclick="addTask()">Add Task →</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="list-view-container">
+          <div class="filter-bar">
+            <div class="filter-chip active" onclick="setFilter('all',this)">All</div>
+            <div class="filter-chip" onclick="setFilter('high',this)">High</div>
+            <div class="filter-chip" onclick="setFilter('med',this)">Medium</div>
+            <div class="filter-chip" onclick="setFilter('low',this)">Low</div>
+            <select class="sort-select" id="sort-select" onchange="renderList()">
+              <option value="created">Newest first</option>
+              <option value="due">By due date</option>
+              <option value="priority">By priority</option>
+              <option value="alpha">Alphabetical</option>
+            </select>
+          </div>
+
+          <div id="task-list"></div>
+        </div>
+
+        <div id="kanban-view-container" style="display:none">
+           <div class="kanban-board" id="kanban-board">
+              <div class="kanban-col" data-status="todo">
+                  <div class="kanban-header">To Do <span class="kanban-count" id="kb-todo-count">0</span></div>
+                  <div class="kanban-items" id="kb-todo" ondrop="kbDrop(event, 'todo')" ondragover="kbAllowDrop(event)"></div>
+              </div>
+              <div class="kanban-col" data-status="in-progress">
+                  <div class="kanban-header">In Progress <span class="kanban-count" id="kb-prog-count">0</span></div>
+                  <div class="kanban-items" id="kb-prog" ondrop="kbDrop(event, 'in-progress')" ondragover="kbAllowDrop(event)"></div>
+              </div>
+              <div class="kanban-col" data-status="done">
+                  <div class="kanban-header">Done <span class="kanban-count" id="kb-done-count">0</span></div>
+                  <div class="kanban-items" id="kb-done" ondrop="kbDrop(event, 'done')" ondragover="kbAllowDrop(event)"></div>
+              </div>
+           </div>
+        </div>
+
+        <div id="gantt-view-container" style="display:none">
+           <div class="gantt-scroll">
+              <div class="gantt-container" id="gantt-chart"></div>
+           </div>
+        </div>
+
+        <div id="analytics-view-container" style="display:none">
+           <div class="analytics-dashboard">
+              <div class="stat-cards">
+                 <div class="stat-card">
+                    <div class="stat-title">Total Time Logged</div>
+                    <div class="stat-value" id="stat-time">0h 0m</div>
+                 </div>
+                 <div class="stat-card">
+                    <div class="stat-title">Completion Rate</div>
+                    <div class="stat-value" id="stat-rate">0%</div>
+                 </div>
+              </div>
+              <div class="charts-row">
+                 <div class="chart-container"><canvas id="statusChart"></canvas></div>
+                 <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+              </div>
+           </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3>Edit Task</h3>
+      <input type="hidden" id="edit-id">
+      <label>Title</label>
+      <input type="text" id="edit-title" maxlength="120">
+      <label>Notes</label>
+      <textarea id="edit-note" rows="3"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label>Status</label>
+          <select id="edit-status">
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div><label>Priority</label>
+          <select id="edit-priority">
+            <option value="high">High</option>
+            <option value="med">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div><label>Category</label>
+          <select id="edit-cat">
+            <option value="work">Work</option>
+            <option value="personal">Personal</option>
+            <option value="study">Study</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div><label>Start Date</label>
+          <input type="date" id="edit-start">
+        </div>
+        <div style="grid-column: span 2"><label>Due date</label>
+          <input type="date" id="edit-due">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="deleteFromModal()">Delete</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Save changes →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="db.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

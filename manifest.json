@@ -1,0 +1,21 @@
+{
+  "name": "Taskboard Manager",
+  "short_name": "Taskboard",
+  "description": "A dynamic to-do and task manager application.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#e8d5a3",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
